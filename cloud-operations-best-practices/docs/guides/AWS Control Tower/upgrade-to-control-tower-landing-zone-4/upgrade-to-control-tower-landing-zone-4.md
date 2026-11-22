@@ -29,7 +29,7 @@ Landing Zone 4.0 introduces significant improvements that provide greater flexib
 | Feature | Version 3.x | Version 4.0 |
 |---------|-------------|-------------|
 | Service integrations | Mandatory | Optional |
-| [AWS Config](https://aws.amazon.com/config/) S3 bucket | Shared with [AWS CloudTrail](https://aws.amazon.com/cloudtrail/) | Dedicated bucket |
+| [AWS Config](https://aws.amazon.com/config/) S3 bucket | Shared with [AWS CloudTrail](https://aws.amazon.com/cloudtrail/) | Dedicated bucket, or [bring your own](../planning-your-landing-zone/index.md#decide-where-your-config-and-cloudtrail-logs-are-delivered) |
 | AWS Config aggregator | Organization + Account aggregators | Service-linked aggregator |
 | Delegated administrator | None | Audit account for AWS Config |
 | OU structure | Mandatory Security OU | Flexible, customer-defined |
@@ -44,6 +44,8 @@ Landing Zone 4.0 introduces significant improvements that provide greater flexib
 Before upgrading to AWS Control Tower Landing Zone 4.0, ensure you meet the following requirements:
 
 > **Important**: This upgrade is irreversible. AWS Control Tower does not support downgrading to a previous landing zone version. Once you upgrade to Landing Zone 4.0, you cannot roll back to version 3.x. It is strongly recommended to test the upgrade in a non-production environment first and take comprehensive backups before proceeding.
+
+If you want AWS Config or AWS CloudTrail to deliver logs to a bucket you own instead of a Control Tower-managed bucket, review [Decide where your Config and CloudTrail logs are delivered](../planning-your-landing-zone/index.md#decide-where-your-config-and-cloudtrail-logs-are-delivered) and [Bring your own Amazon S3 bucket for log delivery](https://docs.aws.amazon.com/controltower/latest/userguide/custom-logging-bucket.html) before you upgrade.
 
 #### General prerequisites
 

@@ -66,6 +66,36 @@ You can deploy additional backup plans to accounts as required, using your Contr
 If you have an existing backup solution you can opt out of this integration.
 
 
+## Decide where your Config and CloudTrail logs are delivered
+
+By default, AWS Control Tower creates and manages the Amazon S3 buckets that receive your AWS Config and AWS CloudTrail logs in the accounts you designate for those integrations. On Landing Zone 4.0, AWS Config moves to its own dedicated managed bucket. On upgrade, AWS CloudTrail keeps using its existing bucket; a separate CloudTrail bucket is created only when CloudTrail is first enabled on 4.0. On Landing Zone 4.0 or later, you can also bring your own S3 bucket for either integration instead of a managed one. The setup steps, bucket prerequisites, required bucket policies, and protective SCPs are documented in [Bring your own Amazon S3 bucket for log delivery](https://docs.aws.amazon.com/controltower/latest/userguide/custom-logging-bucket.html). Use this section to decide whether you should.
+
+### Start with the managed buckets
+
+For most landing zones, keep the Control Tower-managed buckets. Control Tower provisions them, covers them with its controls and SCPs, and keeps their policies correct across landing zone updates. The controls that protect these buckets attach to the OU that holds the integration accounts, so that protection applies there. They already support a customer-managed KMS key and a configurable retention period, so needing your own encryption key or retention schedule is not on its own a reason to bring your own bucket.
+
+### When to bring your own bucket
+
+Consider a custom bucket when you have a specific requirement the managed bucket cannot meet:
+
+- A compliance or operational requirement to keep logs in a single, centralized bucket that your retention schedule, access reviews, and audit tooling are already built around. Validate that consolidating Config and CloudTrail into one bucket still meets your security and compliance posture before you do it.
+- An existing central logging bucket that your SIEM or log lake already reads, where you want delivery to land there directly rather than repointing those consumers.
+- A need to own the bucket's lifecycle, replication, or Object Lock configuration directly, outside Control Tower's management.
+
+If your only goal is to get a copy of the logs into an existing bucket, S3 replication from the managed bucket is an option, but it carries a constraint worth knowing up front. The [mandatory Control Tower controls](https://docs.aws.amazon.com/controltower/latest/controlreference/mandatory-controls.html) that protect the managed buckets (`CTS3PV7` for the Config bucket and `CTS3PV8` for the CloudTrail bucket) deny `s3:PutReplicationConfiguration`, so you cannot add a replication rule the normal way. Configuring replication requires assuming the `AWSControlTowerExecution` role, which those controls exempt, as a break-glass step that bypasses the guardrail and should be used sparingly. If you need logs in a bucket you own without that trade-off, bring your own bucket so the integration delivers to it directly.
+
+Whichever bucket you use, Control Tower delivers logs on the same standard key path, under your organization ID (`<org-id>/AWSLogs/...`). You choose the bucket, its owning account, and its KMS key, and that consistent layout keeps your existing log queries, Athena tables, and downstream tooling working without changes.
+
+### What you take on with a custom bucket
+
+- Control Tower controls do not cover a custom bucket. You own its bucket policy, encryption, S3 Block Public Access, lifecycle, replication, and ongoing protection. Apply the recommended SCPs from the docs to guard it.
+- You maintain the delivery permissions over time. Removing them silently stops Config or CloudTrail log delivery.
+- Switching the Config custom bucket later puts the affected accounts' baselines into source drift, which you clear by re-registering the OU or resetting the Config baseline. Switching only the CloudTrail bucket does not cause this drift.
+
+### Replace every placeholder in the bucket policy
+
+The required bucket policy template uses placeholder tokens for your bucket name and organization ID, and the organization ID appears twice in each delivery statement: as the Amazon S3 key prefix in the `PutObject` `Resource` and as the value of the `aws:SourceOrgID` condition. If you replace it in only one of the two, delivery is denied and the landing zone update fails with the delivery resource failing to stabilize, for example `AWS::Config::DeliveryChannel` returning `NotStabilized`. Replace every placeholder in both the Config and CloudTrail bucket policies, and if the bucket uses SSE-KMS, update the key policy so both AWS Config and AWS CloudTrail can use the key.
+
 ## Expand your AWS Organization Structure to suit business requirements
 
 ### Follow AWS Organizations multi-account best practices
